@@ -13,7 +13,7 @@ DATETIME_FORMATS = (
 
 
 def content_to_lines(content):
-    return [line.strip() for line in content.strip().splitlines()]
+    return content.splitlines()
 
 
 def parse_cf_name(name):
