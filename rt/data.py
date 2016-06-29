@@ -6,7 +6,10 @@ from .exc import RTConversionError
 from .patterns import CUSTOM_FIELD_RE
 
 
-DATETIME_FORMAT = '%a %b %d %H:%M:%S %Y'
+DATETIME_FORMATS = (
+    '%a %b %d %H:%M:%S %Y',
+    '%Y-%m-%d %H:%M:%S',
+)
 
 
 def content_to_lines(content):
@@ -272,11 +275,12 @@ class RTDataSerializer:
         """
         if not string:
             return None
-        try:
-            value = datetime.strptime(string, DATETIME_FORMAT)
-        except (TypeError, ValueError):
-            raise RTConversionError('datetime', string, DATETIME_FORMAT)
-        return value
+        for f in DATETIME_FORMATS:
+            try:
+                return datetime.strptime(string, f)
+            except (TypeError, ValueError):
+                pass
+        raise RTConversionError('datetime', string, 'Formats: {}'.format(DATETIME_FORMATS))
 
     def convert_to_list(self, string):
         """Convert a list value as returned from RT to a ``list``.
