@@ -351,7 +351,9 @@ class RTDataSerializer:
                 value = str(value).strip()
                 if name in self.multiline_fields:
                     value = value.splitlines()
-                    value = '\n '.join(value)
+                    indentation = ' ' * (len(name) + 2)
+                    joiner = '\n{indentation}'.format(**locals())
+                    value = joiner.join(value)
             lines.append('{name}: {value}'.format(name=name, value=value))
         lines.append('')
         content = '\n'.join(lines)
