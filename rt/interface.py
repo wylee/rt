@@ -100,3 +100,36 @@ class RTInterface:
                 ticket_id = match.group('ticket_id')
                 return ticket_id
         raise RTTicketUpdateError(content)
+
+    def get_ticket_history(self, ticket_id, format='long'):
+        """Get a ticket's transaction history.
+
+        Args:
+            ticket_id (int): An existing RT ticket ID.
+            format (str|None):
+                To get a list of history items with details, pass
+                ``format='long'`` (the default); in this case, a list
+                of :class:`RTData`s will be returned (one per history
+                item).
+
+                For a summary of history items, pass ``format='short'``;
+                in this case, an :class:`RTData` will be returned with
+                {ticket ID => description} pairs.
+
+        """
+        path = 'ticket/{ticket_id}/history'.format(ticket_id=ticket_id)
+        params = {}
+        if format in ('s', 'short'):
+            multipart = False
+            params['format'] = 's'
+        elif format in ('l', 'long'):
+            multipart = True
+            params['format'] = 'l'
+        else:
+            raise ValueError('format must be one of "short" or "long"')
+        response = self.session.post(path, params=params, multipart=multipart)
+        if response.detail is not None:
+            not_found_match = re.search(TICKET_NOT_FOUND_RE, response.detail)
+            if not_found_match:
+                raise RTTicketNotFoundError(ticket_id)
+        return response.data

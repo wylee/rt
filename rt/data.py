@@ -309,7 +309,7 @@ class RTDataSerializer:
         'Requestors': 'list',
     }
 
-    multiline_fields = ('Text',)
+    multiline_fields = ('Content', 'Text')
 
     def deserialize(self, raw_data):
         """Convert raw string values returned from RT to Python.
