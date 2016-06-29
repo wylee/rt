@@ -1,5 +1,9 @@
 # Change Log for RT
 
+## 0.6.0 - unrelease
+
+In progress...
+
 ## 0.5.0 - 2016-06-28
 
 This package was originally part of an internal Portland State
