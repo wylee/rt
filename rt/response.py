@@ -14,15 +14,12 @@ class RTResponse:
 
     def __init__(self, content, serializer=None, multipart=False):
         self.content = content
-        self.lines = content_to_lines(content)
-
-        lines = self.lines
+        self.lines = lines = content_to_lines(content)
 
         if not lines:
             raise RTMissingResponseHeaderError(content)
 
-        line = lines[0]
-        meta = self.get_meta(line)
+        meta = self.get_meta(lines[0])
         if meta is None:
             raise RTMalformedResponseHeaderError(content)
         self.version = meta['version']
@@ -30,17 +27,14 @@ class RTResponse:
         self.reason = meta['reason']
         lines = lines[1:]
 
-        line = lines[0]
-        if line:
+        if lines[0]:
             error_detail = 'Expected a blank line following the meta line'
             raise RTMalformedResponseHeaderError(content, error_detail)
         lines = lines[1:]
 
-        # Detail line is optional.
-        line = lines[0]
         # A detail line is optional. For multipart responses, the detail
         # line of the first part will be used.
-        self.detail = self.get_detail(line)
+        self.detail = self.get_detail(lines[0])
         if self.detail is not None:
             if lines[1]:
                 error_detail = 'Expected a blank line following the detail line'
