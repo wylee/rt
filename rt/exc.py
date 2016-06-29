@@ -102,4 +102,6 @@ class RTTicketUpdateError(RTOperationError, RTTicketError):
 
 class RTConversionError(RTError, ValueError):
 
-    pass
+    def __init__(self, type_, value, detail=None):
+        content = 'Could not convert {value!r} to {type_}'.format(**locals())
+        super().__init__(content, detail)
