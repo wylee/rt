@@ -2,7 +2,7 @@ import logging
 import re
 
 
-from .data import content_to_lines, RTData
+from .data import content_to_lines, RTData, RTMultipartData
 from .exc import RTMalformedResponseHeaderError, RTMissingResponseHeaderError
 from .patterns import DETAIL_RE, HEADER_RE
 
@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class RTResponse:
 
-    def __init__(self, content, serializer=None):
+    def __init__(self, content, serializer=None, multipart=False):
         self.content = content
         self.lines = content_to_lines(content)
 
@@ -38,25 +38,36 @@ class RTResponse:
 
         # Detail line is optional.
         line = lines[0]
+        # A detail line is optional. For multipart responses, the detail
+        # line of the first part will be used.
         self.detail = self.get_detail(line)
         if self.detail is not None:
-            lines = lines[1:]
+            if lines[1]:
+                error_detail = 'Expected a blank line following the detail line'
+                raise RTMalformedResponseHeaderError(content, error_detail)
 
-        self.data = RTData.from_lines(lines).deserialize(serializer)
+        if multipart:
+            self.data = RTMultipartData.from_lines(lines).deserialize(serializer)
+        else:
+            if self.detail:
+                # Skip detail line and following blank line
+                lines = lines[2:]
+            self.data = RTData.from_lines(lines).deserialize(serializer)
 
     @classmethod
-    def from_raw_response(cls, response):
+    def from_raw_response(cls, response, **kwargs):
         """Create an instance from a "raw" response object.
 
         Args:
             response: A "raw" response object as returned from the
                 requests library.
+            kwargs: Keyword args passed through to constructor.
 
         Returns:
             RTResponse
 
         """
-        rt_response = cls(response.text)
+        rt_response = cls(response.text, **kwargs)
         rt_response.raw_response = response
         return rt_response
 

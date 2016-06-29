@@ -1,6 +1,7 @@
 import re
 from collections import MutableMapping, OrderedDict, Sequence
 from datetime import datetime
+from itertools import chain
 
 from .exc import RTConversionError
 from .patterns import CUSTOM_FIELD_RE
@@ -115,6 +116,53 @@ class RTData(OrderedDict):
         if serializer is None:
             serializer = RTDataSerializer()
         return serializer.deserialize(self)
+
+    def __str__(self):
+        return self.serialize()
+
+
+class RTMultipartData(Sequence):
+
+    def __init__(self, items):
+        self._items = items
+
+    @classmethod
+    def from_lines(cls, lines):
+        # TODO: Extract detail lines?
+        parts = []
+        current_part = []
+        prev_iter = chain([None], lines[:-1])
+        next_iter = chain(lines[1:], [None])
+        for prev_line, line, next_line in zip(prev_iter, lines, next_iter):
+            if not line or line.startswith('#'):
+                continue
+            if (prev_line, line, next_line) == ('', '--', ''):
+                parts.append(current_part)
+                current_part = []
+            else:
+                current_part.append(line)
+        items = [RTData.from_lines(part) for part in parts]
+        return RTMultipartData(items)
+
+    @classmethod
+    def from_string(cls, content):
+        """Create instance from string."""
+        return cls.from_lines(content_to_lines(content))
+
+    def serialize(self, serializer=None):
+        return '\n--\n\n'.join(item.serialize(serializer) for item in self)
+
+    def deserialize(self, serializer=None):
+        return RTMultipartData([item.deserialize(serializer) for item in self])
+
+    def __getitem__(self, index):
+        return self._items[index]
+
+    def __iter__(self):
+        return iter(self._items)
+
+    def __len__(self):
+        return len(self._items)
 
     def __str__(self):
         return self.serialize()

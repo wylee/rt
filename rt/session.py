@@ -20,7 +20,7 @@ class RTSession(BaseSession):
         self.logged_in = False
 
     def request(self, method, path, acceptable_status_codes=(200,), parse_response=True,
-                require_auth=True, **kwargs):
+                require_auth=True, multipart=False, **kwargs):
         """Perform a request in the current RT session.
 
         Args:
@@ -37,6 +37,7 @@ class RTSession(BaseSession):
             require_auth: By default, authentication is required.
                 Generally speaking, only login & logout requests don't
                 require auth.
+            multipart: Whether the RT response contains multiple parts.
             kwargs: The remaining keyword args are passed as-is to the
                 super method.
 
@@ -66,7 +67,7 @@ class RTSession(BaseSession):
             raise RTUnexpectedStatusCodeError(status_code, content)
 
         if parse_response:
-            response = RTResponse.from_raw_response(response)
+            response = RTResponse.from_raw_response(response, multipart=multipart)
             content = response.content
 
         log.debug('%s %s %s: %s', method, url, response.status_code, content)
