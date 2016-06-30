@@ -1,5 +1,10 @@
 # Change Log for RT
 
+## 0.7.0 - unreleased
+
+In progress...
+
+
 ## 0.6.0 - 2016-06-30
 
 ### Added
