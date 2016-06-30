@@ -4,7 +4,7 @@ egg_info = $(distribution).egg-info
 sdist = dist/$(distribution)-$(version).tar.gz
 upload_path = hrimfaxi:/vol/www/cdn/pypi/dist
 venv = .env
-venv_python ?= python3.5
+venv_python ?= python3.3
 version = $(shell cat VERSION)
 
 sources = $(shell find . \

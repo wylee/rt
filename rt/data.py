@@ -1,16 +1,21 @@
 import re
 from collections import MutableMapping, OrderedDict, Sequence
 from datetime import datetime
+from itertools import chain
+from textwrap import dedent
 
 from .exc import RTConversionError
-from .patterns import CUSTOM_FIELD_RE
+from .patterns import CUSTOM_FIELD_RE, KEY_VALUE_LINE
 
 
-DATETIME_FORMAT = '%a %b %d %H:%M:%S %Y'
+DATETIME_FORMATS = (
+    '%a %b %d %H:%M:%S %Y',
+    '%Y-%m-%d %H:%M:%S',
+)
 
 
 def content_to_lines(content):
-    return [line.strip() for line in content.strip().splitlines()]
+    return content.splitlines()
 
 
 def parse_cf_name(name):
@@ -69,6 +74,16 @@ class RTData(OrderedDict):
         >>> data.custom_fields['ABC']
         'abc'
 
+        >>> data = RTData.from_lines(['ABC: abc'])
+        >>> data['ABC']
+        'abc'
+
+        >>> data = RTData.from_lines(['ABC: abc', 'XYZ: x', ' y', ' z'])
+        >>> data['ABC']
+        'abc'
+        >>> data['XYZ']
+        'x\\ny\\nz'
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -83,18 +98,54 @@ class RTData(OrderedDict):
             lines (list): The content lines of an RT response. I.e., the
                 part of the response text after the meta and detail lines.
 
+                Note: line endings *should* be stripped from each line
+                but other leading and trailing whitespace should *not*
+                be stripped.
+
         Returns:
             RTData: Map of RT field name => raw field value.
 
+        These are the types of lines we expect to encounter:
+
+            - Blank lines (no content at all, including whitespace)
+            - Comment lines (e.g., "# Comment")
+            - Key lines (e.g., "Created: ABC")
+            - Continuation lines (e.g., "    " or "    XYZ")
+
+        Longest common whitespace is removed from continuation lines (on
+        a per-value basis). Otherwise, leading and trailing whitespace
+        is preserved.
+
         """
-        instance = cls()
-        for line in lines:
-            line = line.strip()
-            if line and not line.startswith('#'):
-                k, v = line.split(':', 1)
-                v = v.strip()
-                instance[k] = v
-        return instance
+        data = []
+        key_lines = []
+
+        # Find & save lines containing keys
+        for i, line in enumerate(lines):
+            if not line or line.startswith('#'):
+                continue
+            match = re.match(KEY_VALUE_LINE, line)
+            if match:
+                key_lines.append((i, match.group('key'), match.group('value')))
+            elif not line.startswith(' '):
+                raise ValueError(
+                    'Expected a continuation line starting with a space; got "%s"' % line)
+
+        # Extract value for each key found above
+        eof = (len(lines), None, None)
+        for line, next_line in zip(key_lines, chain(key_lines[1:], [eof])):
+            value = []
+            i, key, start_value = line
+            j, *rest = next_line
+            continuation_lines = lines[(i + 1):j]
+            if start_value:
+                value.append(start_value)
+            if continuation_lines:
+                continuation_lines = dedent('\n'.join(continuation_lines))
+                value.append(continuation_lines)
+            data.append((key, '\n'.join(value).strip()))
+
+        return cls(data)
 
     @classmethod
     def from_string(cls, content):
@@ -112,6 +163,53 @@ class RTData(OrderedDict):
         if serializer is None:
             serializer = RTDataSerializer()
         return serializer.deserialize(self)
+
+    def __str__(self):
+        return self.serialize()
+
+
+class RTMultipartData(Sequence):
+
+    def __init__(self, items):
+        self._items = items
+
+    @classmethod
+    def from_lines(cls, lines):
+        # TODO: Extract detail lines?
+        parts = []
+        current_part = []
+        prev_iter = chain([None], lines[:-1])
+        next_iter = chain(lines[1:], [None])
+        for prev_line, line, next_line in zip(prev_iter, lines, next_iter):
+            if not line or line.startswith('#'):
+                continue
+            if (prev_line, line, next_line) == ('', '--', ''):
+                parts.append(current_part)
+                current_part = []
+            else:
+                current_part.append(line)
+        items = [RTData.from_lines(part) for part in parts]
+        return RTMultipartData(items)
+
+    @classmethod
+    def from_string(cls, content):
+        """Create instance from string."""
+        return cls.from_lines(content_to_lines(content))
+
+    def serialize(self, serializer=None):
+        return '\n--\n\n'.join(item.serialize(serializer) for item in self)
+
+    def deserialize(self, serializer=None):
+        return RTMultipartData([item.deserialize(serializer) for item in self])
+
+    def __getitem__(self, index):
+        return self._items[index]
+
+    def __iter__(self):
+        return iter(self._items)
+
+    def __len__(self):
+        return len(self._items)
 
     def __str__(self):
         return self.serialize()
@@ -211,7 +309,7 @@ class RTDataSerializer:
         'Requestors': 'list',
     }
 
-    multiline_fields = ('Text',)
+    multiline_fields = ('Content', 'Text')
 
     def deserialize(self, raw_data):
         """Convert raw string values returned from RT to Python.
@@ -253,7 +351,9 @@ class RTDataSerializer:
                 value = str(value).strip()
                 if name in self.multiline_fields:
                     value = value.splitlines()
-                    value = '\n '.join(value)
+                    indentation = ' ' * (len(name) + 2)
+                    joiner = '\n{indentation}'.format(**locals())
+                    value = joiner.join(value)
             lines.append('{name}: {value}'.format(name=name, value=value))
         lines.append('')
         content = '\n'.join(lines)
@@ -272,11 +372,12 @@ class RTDataSerializer:
         """
         if not string:
             return None
-        try:
-            value = datetime.strptime(string, DATETIME_FORMAT)
-        except (TypeError, ValueError):
-            raise RTConversionError('datetime', string, DATETIME_FORMAT)
-        return value
+        for f in DATETIME_FORMATS:
+            try:
+                return datetime.strptime(string, f)
+            except (TypeError, ValueError):
+                pass
+        raise RTConversionError('datetime', string, 'Formats: {}'.format(DATETIME_FORMATS))
 
     def convert_to_list(self, string):
         """Convert a list value as returned from RT to a ``list``.
