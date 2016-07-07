@@ -12,9 +12,9 @@ In progress...
 - Added support for multipart RT responses.
 - Added support for multiple RT datetime formats because different types
   of RT responses may use different formats for datetime strings.
-  XXX: There may be other formats.
-  TODO: Make formats configurable?
-  TODO: Add a configuration system.
+  - XXX: There may be other formats.
+  - TODO: Make formats configurable?
+  - TODO: Add a configuration system.
 - Added initial support for fetching ticket history.
 - Added some initial doctests to `RTResponse`.
 
