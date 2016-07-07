@@ -50,7 +50,7 @@ University project. It has been extracted for use in other PSU projects
 and potentially for use by third parties.
 
 The initial version number is somewhat arbitrary; it's intended to
-indicated that the project isn't feature complete but that it's somewhat
+indicate that the project isn't feature complete but that it's somewhat
 stable.
 
 This initial version supports only the following operations:
