@@ -1,4 +1,5 @@
 import logging
+import textwrap
 from urllib.parse import urljoin
 
 from requests import Session as BaseSession
@@ -57,20 +58,27 @@ class RTSession(BaseSession):
         response = super().request(method, url, **kwargs)
 
         status_code = response.status_code
-        content = response.text
+        response_text = response.text
 
         if status_code not in acceptable_status_codes:
             if status_code == 302:
                 # We don't pass the response content here because it's a
                 # big lump of HTML, and that's not very helpful.
                 raise RTAuthenticationError('Not authorized (session probably expired)')
-            raise RTUnexpectedStatusCodeError(status_code, content)
+            raise RTUnexpectedStatusCodeError(status_code, response_text)
 
         if parse_response:
             response = RTResponse.from_raw_response(response, multipart=multipart)
-            content = response.content
 
-        log.debug('%s %s %s: %s', method, url, response.status_code, content)
+        log_level = log.getEffectiveLevel()
+        log_args = (method, url, response.status_code, response.reason)
+        if log_level == logging.DEBUG:
+            indented_text = textwrap.indent(response_text, ' ')
+            log_args = log_args + (indented_text,)
+            log.debug('%s %s %s "%s"\n%s', *log_args)
+        else:
+            log.info('%s %s %s "%s"', *log_args)
+
         return response
 
     def url_for_path(self, path):
