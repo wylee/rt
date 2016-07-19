@@ -74,12 +74,13 @@ class RTResponse:
                 raise RTMalformedResponseHeaderError(content, error_detail)
 
         if multipart:
-            self.data = RTMultipartData.from_lines(lines).deserialize(serializer)
+            data_type = RTMultipartData
         else:
+            data_type = RTData
             if self.details:
                 # Skip detail line(s) and following blank line
                 lines = lines[len(self.details):]
-            self.data = RTData.from_lines(lines).deserialize(serializer)
+        self.data = data_type.from_lines(lines).deserialize(serializer)
 
     @classmethod
     def from_raw_response(cls, response, **kwargs):
