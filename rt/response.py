@@ -35,7 +35,7 @@ class RTResponse:
 
     """
 
-    def __init__(self, content, serializer=None, multipart=False):
+    def __init__(self, content, data_type=None, serializer=None, multipart=False):
         self.content = content
         self.lines = lines = content_to_lines(content)
 
@@ -72,7 +72,7 @@ class RTResponse:
                 error_detail = 'Expected a blank line following detail line(s)'
                 raise RTMalformedResponseHeaderError(content, error_detail)
 
-        data_type = RTMultipartData if multipart else RTData
+        data_type = data_type or (RTMultipartData if multipart else RTData)
         self.data = data_type.from_lines(lines).deserialize(serializer)
 
     @classmethod
