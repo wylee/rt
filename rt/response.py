@@ -72,13 +72,7 @@ class RTResponse:
                 error_detail = 'Expected a blank line following detail line(s)'
                 raise RTMalformedResponseHeaderError(content, error_detail)
 
-        if multipart:
-            data_type = RTMultipartData
-        else:
-            data_type = RTData
-            if self.details:
-                # Skip detail line(s) and following blank line
-                lines = lines[len(self.details):]
+        data_type = RTMultipartData if multipart else RTData
         self.data = data_type.from_lines(lines).deserialize(serializer)
 
     @classmethod
