@@ -187,7 +187,7 @@ class RTMultipartData(Sequence):
             else:
                 current_part.append(line)
         items = [RTData.from_lines(part) for part in parts]
-        return RTMultipartData(items)
+        return cls(items)
 
     @classmethod
     def from_string(cls, content):
