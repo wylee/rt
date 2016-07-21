@@ -50,8 +50,8 @@ class RTInterface:
     def get_ticket(self, ticket_id):
         f = locals()
         response = self.session.get('ticket/{ticket_id}/show'.format_map(f))
-        if response.detail is not None:
-            not_found_match = re.search(TICKET_NOT_FOUND_RE, response.detail)
+        for detail in response.details:
+            not_found_match = re.search(TICKET_NOT_FOUND_RE, detail)
             if not_found_match:
                 raise RTTicketNotFoundError(ticket_id)
         return response.data
@@ -77,8 +77,7 @@ class RTInterface:
         rt_data.update(data)
         content = rt_data.serialize()
         response = self.session.post(path, data={'content': content})
-        detail = response.detail
-        if detail is not None:
+        for detail in response.details:
             match = re.search(TICKET_CREATED_RE, detail)
             if match:
                 ticket_id = match.group('ticket_id')
@@ -93,8 +92,7 @@ class RTInterface:
         rt_data.update(data)
         content = rt_data.serialize()
         response = self.session.post(path, data={'content': content})
-        detail = response.detail
-        if detail is not None:
+        for detail in response.details:
             match = re.search(TICKET_UPDATED_RE, detail)
             if match:
                 ticket_id = match.group('ticket_id')
@@ -128,8 +126,8 @@ class RTInterface:
         else:
             raise ValueError('format must be one of "short" or "long"')
         response = self.session.post(path, params=params, multipart=multipart)
-        if response.detail is not None:
-            not_found_match = re.search(TICKET_NOT_FOUND_RE, response.detail)
+        for detail in response.details:
+            not_found_match = re.search(TICKET_NOT_FOUND_RE, detail)
             if not_found_match:
                 raise RTTicketNotFoundError(ticket_id)
         return response.data

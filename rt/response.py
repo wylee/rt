@@ -65,8 +65,7 @@ class RTResponse:
             i += 1
             detail = self.get_detail(lines[i])
 
-        # Use the first detail as the "main" detail.
-        self.detail = self.details[0] if self.details else None
+        self.detail = '\n'.join(self.details)
 
         if self.details:
             if lines[len(self.details)]:
