@@ -181,8 +181,6 @@ class RTMultipartData(Sequence):
         prev_iter = chain([None], lines[:-1])
         next_iter = chain(lines[1:], [None])
         for prev_line, line, next_line in zip(prev_iter, lines, next_iter):
-            if not line or line.startswith('#'):
-                continue
             if (prev_line, line, next_line) == ('', '--', ''):
                 parts.append(current_part)
                 current_part = []
