@@ -16,7 +16,23 @@ TICKET_UPDATED_RE = r'^Ticket (?P<ticket_id>\d+) updated.$'
 
 class RTInterface:
 
-    """Wraps the RT "REST" API."""
+    """Wraps the RT "REST" API.
+
+    Provides the context manager interface::
+
+        with RTInterface(...) as rt:
+            ticket_data = rt.get_ticket(...)
+
+    which is a little nicer than::
+
+        rt = RTInterface(...)
+        rt.login()
+        ticket_data = rt.get_ticket(...)
+        rt.logout()
+
+    and ensures the RT session is closed out.
+
+    """
 
     def __init__(self, url, username, password, default_queue=None):
         self.url = url
@@ -30,6 +46,13 @@ class RTInterface:
         if self.session:
             self.session.close()
         self.session = RTSession(self.url)
+
+    def __enter__(self):
+        self.login()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logout()
 
     # Auth
 
