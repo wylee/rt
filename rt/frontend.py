@@ -105,6 +105,9 @@ class RTFrontEnd:
         """
         return self.add_task_and_wait_for_result('update_ticket', (ticket_id, data))
 
+    def search(self, query, format='i'):
+        return self.add_task_and_wait_for_result('search', (query,), {'format': format})
+
 
 class Worker(Thread):
 

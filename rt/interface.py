@@ -1,7 +1,7 @@
 import logging
 import re
 
-from .data import RTData
+from .data import RTData, RTLinesData, RTIDSerializer
 from .exc import RTTicketCreationError, RTTicketNotFoundError, RTTicketUpdateError
 from .session import RTSession
 
@@ -153,4 +153,52 @@ class RTInterface:
             not_found_match = re.search(TICKET_NOT_FOUND_RE, detail)
             if not_found_match:
                 raise RTTicketNotFoundError(ticket_id)
+        return response.data
+
+    def search(self, query, format='id'):
+        """Search for tickets.
+
+        Args:
+            query: An RT search query string.
+            format: One of "id", "short", or "long" (or just the first
+                character of one of these).
+
+        Returns:
+            A list of search results. The format of the results depends
+            on which ``format`` was specified:
+
+            - i(d): a list of just ticket IDs.
+            - s(hort): a list of { ticket ID => ticket subject }.
+            - l(ong): a list of ticket data objects (the same as what's
+              returned from :meth:`get_ticket`.
+
+        """
+        path = 'search/ticket'
+
+        if format in ('i', 'id'):
+            format = 'i'
+            data_type = RTLinesData
+            multipart = False
+            serializer = RTIDSerializer('ticket')
+        elif format in ('s', 'short'):
+            format = 's'
+            data_type = None
+            multipart = False
+            serializer = None
+        elif format in ('l', 'long'):
+            format = 'l'
+            data_type = None
+            multipart = True
+            serializer = None
+        else:
+            raise ValueError('format must be one of "short" or "long"')
+
+        params = {
+            'query': query,
+            'format': format,
+        }
+
+        response = self.session.get(
+            path, params=params, data_type=data_type, multipart=multipart, serializer=serializer)
+
         return response.data
