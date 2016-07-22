@@ -124,7 +124,7 @@ class RTData(OrderedDict):
         for i, line in enumerate(lines):
             if not line or line.startswith('#'):
                 continue
-            match = re.match(KEY_VALUE_LINE, line)
+            match = re.search(KEY_VALUE_LINE, line)
             if match:
                 key_lines.append((i, match.group('key'), match.group('value')))
             elif not line.startswith(' '):
