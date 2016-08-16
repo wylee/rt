@@ -18,7 +18,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'requests>=2.10.0',
+        'requests>=2.11.0',
     ],
     extras_require={
         'dev': [
