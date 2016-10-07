@@ -1,8 +1,40 @@
 # Change Log for RT
 
-## 0.7.0 - unreleased
+## 0.7.0 - 2016-10-06
 
-In progress...
+### Added
+
+- Added `data_type` keyword arg to `RTResponse` so custom data types can
+  be specified instead of always using `RTData` and `RTMultipartData`.
+- Added context manager interface to `RTInterface`. This is nice for
+  simple use cases to ensure the RT session is closed without a bunch of
+  tedious boilerplate.
+- Added `search` operation to `RTIntferface` and `RTFrontEnd`.
+- Added `RTLinesData` and related `RTIDSerializer`. These are for use
+  with RT data that's returned as a sequence of lines like `xyz/n`
+  (e.g., what gets returned from the `search/ticket` endpoint when the
+  `format` query parameter is set to `i` (for `id`?)).
+
+### Changed
+
+- Upgraded requests 2.10.0 => 2.11.1.
+- Switched from using `re.match()` to `re.search()` when
+  parsing/matching key/value lines.
+- `RTSession.request()` now accepts *all* `RTResponse` args.
+- All detail lines are now included in the `detail` attribute of
+  `RTResponse` instances (instead of just the first detail line).
+- The detail lines of an RT response are now *always* passed to the data
+  type from `RTResponse`. Previously, they were only passed for
+  multipart responses.
+- Cleaned up some things.
+
+### Fixed
+
+- Added missing `RTFrontEnd.get_ticket_history()` method. The
+  corresponding method was added to `RTInterface` in 3aa43d2, but I
+  forgot to add it to `RTFrontEnd` then.
+- Fixed key/value matching to account for the fact that custom field
+  names may include spaces.
 
 
 ## 0.6.0 - 2016-06-30
