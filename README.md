@@ -81,7 +81,7 @@ There are two other RT libraries for Python on PyPI: `rt` and
 
 `python-rtkit` actually seems fairly decent in terms of code quality,
 but there's no Python 3 version. `rt` supports most of RT's REST
-operations, but it some issues that were tricky to work around.
+operations, but it has some issues that were tricky to work around.
 
 ## This RT package
 

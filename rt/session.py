@@ -1,4 +1,5 @@
 import logging
+import textwrap
 from urllib.parse import urljoin
 
 from requests import Session as BaseSession
@@ -19,8 +20,8 @@ class RTSession(BaseSession):
         self.url = url
         self.logged_in = False
 
-    def request(self, method, path, acceptable_status_codes=(200,), parse_response=True,
-                require_auth=True, multipart=False, **kwargs):
+    def request(self, method, path, acceptable_status_codes=(200,), require_auth=True,
+                parse_response=True, data_type=None, serializer=None, multipart=False, **kwargs):
         """Perform a request in the current RT session.
 
         Args:
@@ -30,14 +31,16 @@ class RTSession(BaseSession):
                 combined with the base URL to get the full URL/path.
             acceptable_status_codes (tuple): Only 200 responses are
                 acceptable by default.
+            require_auth: By default, authentication is required.
+                Generally speaking, only login & logout requests don't
+                require auth.
             parse_response: By default, an :class:`RTResponse` is
                 returned, which knows how to parse RT REST responses.
                 The "raw" response object--as returned from the requests
                 library--will be returned if this is ``False``.
-            require_auth: By default, authentication is required.
-                Generally speaking, only login & logout requests don't
-                require auth.
-            multipart: Whether the RT response contains multiple parts.
+            data_type: See :class:`RTResponse`.
+            serializer: See :class:`RTResponse`.
+            multipart: See :class:`RTResponse`.
             kwargs: The remaining keyword args are passed as-is to the
                 super method.
 
@@ -57,20 +60,28 @@ class RTSession(BaseSession):
         response = super().request(method, url, **kwargs)
 
         status_code = response.status_code
-        content = response.text
+        response_text = response.text
 
         if status_code not in acceptable_status_codes:
             if status_code == 302:
                 # We don't pass the response content here because it's a
                 # big lump of HTML, and that's not very helpful.
                 raise RTAuthenticationError('Not authorized (session probably expired)')
-            raise RTUnexpectedStatusCodeError(status_code, content)
+            raise RTUnexpectedStatusCodeError(status_code, response_text)
 
         if parse_response:
-            response = RTResponse.from_raw_response(response, multipart=multipart)
-            content = response.content
+            response = RTResponse.from_raw_response(
+                response, data_type=data_type, serializer=serializer, multipart=multipart)
 
-        log.debug('%s %s %s: %s', method, url, response.status_code, content)
+        log_level = log.getEffectiveLevel()
+        log_args = (method, url, response.status_code, response.reason)
+        if log_level == logging.DEBUG:
+            indented_text = textwrap.indent(response_text, ' ')
+            log_args = log_args + (indented_text,)
+            log.debug('%s %s %s "%s"\n%s', *log_args)
+        else:
+            log.info('%s %s %s "%s"', *log_args)
+
         return response
 
     def url_for_path(self, path):

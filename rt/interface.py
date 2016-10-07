@@ -1,7 +1,7 @@
 import logging
 import re
 
-from .data import RTData
+from .data import RTData, RTLinesData, RTIDSerializer
 from .exc import RTTicketCreationError, RTTicketNotFoundError, RTTicketUpdateError
 from .session import RTSession
 
@@ -16,7 +16,23 @@ TICKET_UPDATED_RE = r'^Ticket (?P<ticket_id>\d+) updated.$'
 
 class RTInterface:
 
-    """Wraps the RT "REST" API."""
+    """Wraps the RT "REST" API.
+
+    Provides the context manager interface::
+
+        with RTInterface(...) as rt:
+            ticket_data = rt.get_ticket(...)
+
+    which is a little nicer than::
+
+        rt = RTInterface(...)
+        rt.login()
+        ticket_data = rt.get_ticket(...)
+        rt.logout()
+
+    and ensures the RT session is closed out.
+
+    """
 
     def __init__(self, url, username, password, default_queue=None):
         self.url = url
@@ -30,6 +46,13 @@ class RTInterface:
         if self.session:
             self.session.close()
         self.session = RTSession(self.url)
+
+    def __enter__(self):
+        self.login()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logout()
 
     # Auth
 
@@ -50,8 +73,8 @@ class RTInterface:
     def get_ticket(self, ticket_id):
         f = locals()
         response = self.session.get('ticket/{ticket_id}/show'.format_map(f))
-        if response.detail is not None:
-            not_found_match = re.search(TICKET_NOT_FOUND_RE, response.detail)
+        for detail in response.details:
+            not_found_match = re.search(TICKET_NOT_FOUND_RE, detail)
             if not_found_match:
                 raise RTTicketNotFoundError(ticket_id)
         return response.data
@@ -77,8 +100,7 @@ class RTInterface:
         rt_data.update(data)
         content = rt_data.serialize()
         response = self.session.post(path, data={'content': content})
-        detail = response.detail
-        if detail is not None:
+        for detail in response.details:
             match = re.search(TICKET_CREATED_RE, detail)
             if match:
                 ticket_id = match.group('ticket_id')
@@ -93,8 +115,7 @@ class RTInterface:
         rt_data.update(data)
         content = rt_data.serialize()
         response = self.session.post(path, data={'content': content})
-        detail = response.detail
-        if detail is not None:
+        for detail in response.details:
             match = re.search(TICKET_UPDATED_RE, detail)
             if match:
                 ticket_id = match.group('ticket_id')
@@ -128,8 +149,56 @@ class RTInterface:
         else:
             raise ValueError('format must be one of "short" or "long"')
         response = self.session.post(path, params=params, multipart=multipart)
-        if response.detail is not None:
-            not_found_match = re.search(TICKET_NOT_FOUND_RE, response.detail)
+        for detail in response.details:
+            not_found_match = re.search(TICKET_NOT_FOUND_RE, detail)
             if not_found_match:
                 raise RTTicketNotFoundError(ticket_id)
+        return response.data
+
+    def search(self, query, format='id'):
+        """Search for tickets.
+
+        Args:
+            query: An RT search query string.
+            format: One of "id", "short", or "long" (or just the first
+                character of one of these).
+
+        Returns:
+            A list of search results. The format of the results depends
+            on which ``format`` was specified:
+
+            - i(d): a list of just ticket IDs.
+            - s(hort): a list of { ticket ID => ticket subject }.
+            - l(ong): a list of ticket data objects (the same as what's
+              returned from :meth:`get_ticket`.
+
+        """
+        path = 'search/ticket'
+
+        if format in ('i', 'id'):
+            format = 'i'
+            data_type = RTLinesData
+            multipart = False
+            serializer = RTIDSerializer('ticket')
+        elif format in ('s', 'short'):
+            format = 's'
+            data_type = None
+            multipart = False
+            serializer = None
+        elif format in ('l', 'long'):
+            format = 'l'
+            data_type = None
+            multipart = True
+            serializer = None
+        else:
+            raise ValueError('format must be one of "short" or "long"')
+
+        params = {
+            'query': query,
+            'format': format,
+        }
+
+        response = self.session.get(
+            path, params=params, data_type=data_type, multipart=multipart, serializer=serializer)
+
         return response.data

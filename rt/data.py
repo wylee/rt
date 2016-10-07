@@ -124,7 +124,7 @@ class RTData(OrderedDict):
         for i, line in enumerate(lines):
             if not line or line.startswith('#'):
                 continue
-            match = re.match(KEY_VALUE_LINE, line)
+            match = re.search(KEY_VALUE_LINE, line)
             if match:
                 key_lines.append((i, match.group('key'), match.group('value')))
             elif not line.startswith(' '):
@@ -181,15 +181,13 @@ class RTMultipartData(Sequence):
         prev_iter = chain([None], lines[:-1])
         next_iter = chain(lines[1:], [None])
         for prev_line, line, next_line in zip(prev_iter, lines, next_iter):
-            if not line or line.startswith('#'):
-                continue
             if (prev_line, line, next_line) == ('', '--', ''):
                 parts.append(current_part)
                 current_part = []
             else:
                 current_part.append(line)
         items = [RTData.from_lines(part) for part in parts]
-        return RTMultipartData(items)
+        return cls(items)
 
     @classmethod
     def from_string(cls, content):
@@ -210,6 +208,47 @@ class RTMultipartData(Sequence):
 
     def __len__(self):
         return len(self._items)
+
+    def __str__(self):
+        return self.serialize()
+
+
+class RTLinesData(Sequence):
+
+    def __init__(self, lines):
+        self._lines = lines
+
+    @classmethod
+    def from_lines(cls, lines):
+        lines = [line for line in lines if (line and not line.startswith('#'))]
+        return cls(lines)
+
+    @classmethod
+    def from_string(cls, content):
+        """Create instance from string."""
+        return cls.from_lines(content_to_lines(content))
+
+    def serialize(self, serializer=None):
+        if serializer:
+            lines = (serializer.serialize(line) for line in self)
+        else:
+            lines = iter(self)
+        return '\n'.join(str(line) for line in lines)
+
+    def deserialize(self, serializer=None):
+        if serializer:
+            return RTLinesData([serializer.deserialize(line) for line in self])
+        else:
+            return self
+
+    def __getitem__(self, index):
+        return self._lines[index]
+
+    def __iter__(self):
+        return iter(self._lines)
+
+    def __len__(self):
+        return len(self._lines)
 
     def __str__(self):
         return self.serialize()
@@ -396,3 +435,36 @@ class RTDataSerializer:
         items = [item.strip() for item in items]
         items = [item for item in items if item]  # XXX: Necessary?
         return items
+
+
+class RTIDSerializer:
+
+    """Serializer for responses that contain a list of IDs.
+
+    For example, a search for tickets with ``format=i`` will return a
+    response like this::
+
+        ticket/1234
+        ticket/4321
+
+    To get a list of just the ticket IDs from that response::
+
+        data = RTLinesData.from_string(response)
+        ticket_ids = data.deserialize(RTIDSerializer('ticket')
+
+    """
+
+    def __init__(self, type_name, type=None):
+        self.type_name = type_name
+        self.type = type
+
+    def serialize(self, line):
+        return '{self.type_name}/{line}'.format_map(locals())
+
+    def deserialize(self, line):
+        parts = line.split('/', 1)
+        type_name, object_id = parts
+        assert type_name == self.type_name
+        if self.type is not None:
+            object_id = self.type(object_id)
+        return object_id

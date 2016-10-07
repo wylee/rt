@@ -12,12 +12,44 @@ log = logging.getLogger(__name__)
 
 class RTResponse:
 
-    """Wrapper around an RT response content.
+    """Wrapper around an RT response's content.
 
     The RT response content is parsed into an :class:`RTData` instance
     with values converted to Python types. Multipart responses are
     parsed into an :class:`RTMultipartData` instance, which is a
     sequence of :class:`RTData`s.
+
+    Args:
+        content: A blob of response text as would be returned from a
+            request to the RT API.
+        data_type: A class that converts lines from an RT response into
+            data; in most cases, this is determined automatically
+            depending on whether the response is ``multipart``. Such
+            classes must have a ``from_lines`` class method that
+            constructs an instance from lines; instances must have
+            a ``deserialize`` method.
+        serializer: This will be passed along to the ``deserialize``
+            method of the ``data_type`` instance.
+        multipart: Whether the response has multiple parts (i.e.,
+            whether it contains a list of results).
+
+    Attributes:
+        content: The unaltered response content. The first line of
+            content is expected to be a meta line containing the RT
+            version, response status code, and reason text.
+        lines: The response content split into lines. Other than being
+            split into lines, the content is otherwise unaltered.
+        version: RT version from meta line.
+        status_code: Status code extracted from meta line.
+        reason: Reason text extracted from meta line.
+        details: Response details extracted from comments lines after
+            meta lines. There may be zero, one, or multiple detail
+            lines.
+        detail: All of the response details joined together as a single
+            string.
+        data: The response content parsed into a usable data format.
+            Typically, this will be a dict-like object or a sequence of
+            dict-like objects (unless a ``data_type`` is specified).
 
     Here's a basic response with no content::
 
@@ -35,7 +67,7 @@ class RTResponse:
 
     """
 
-    def __init__(self, content, serializer=None, multipart=False):
+    def __init__(self, content, data_type=None, serializer=None, multipart=False):
         self.content = content
         self.lines = lines = content_to_lines(content)
 
@@ -65,21 +97,15 @@ class RTResponse:
             i += 1
             detail = self.get_detail(lines[i])
 
-        # Use the first detail as the "main" detail.
-        self.detail = self.details[0] if self.details else None
+        self.detail = '\n'.join(self.details)
 
         if self.details:
             if lines[len(self.details)]:
                 error_detail = 'Expected a blank line following detail line(s)'
                 raise RTMalformedResponseHeaderError(content, error_detail)
 
-        if multipart:
-            self.data = RTMultipartData.from_lines(lines).deserialize(serializer)
-        else:
-            if self.details:
-                # Skip detail line(s) and following blank line
-                lines = lines[len(self.details):]
-            self.data = RTData.from_lines(lines).deserialize(serializer)
+        data_type = data_type or (RTMultipartData if multipart else RTData)
+        self.data = data_type.from_lines(lines).deserialize(serializer)
 
     @classmethod
     def from_raw_response(cls, response, **kwargs):
