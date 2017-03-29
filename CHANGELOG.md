@@ -1,9 +1,10 @@
 # Change Log for RT
 
-## 0.8.0 - unreleased
+## 0.8.0 - 2017-03-29
 
-In progress...
-
+- Improved regular expressions used to parse key/value pairs from RT
+  response lines and custom field names. Custom field names and keys may
+  now end with a question mark.
 
 ## 0.7.0 - 2016-10-06
 
