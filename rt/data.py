@@ -83,6 +83,14 @@ class RTData(OrderedDict):
         'abc'
         >>> data['XYZ']
         'x\\ny\\nz'
+        
+        >>> data = RTData.from_lines(['ABC?: abc'])
+        >>> data['ABC?']
+        'abc'
+        
+        >>> data = RTData.from_lines(['CF.{ABC?}: abc'])
+        >>> data.custom_fields['ABC?']
+        'abc'
 
     """
 
