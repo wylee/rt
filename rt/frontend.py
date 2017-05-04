@@ -105,8 +105,9 @@ class RTFrontEnd:
         """
         return self.add_task_and_wait_for_result('update_ticket', (ticket_id, data))
 
-    def get_ticket_history(self, ticket_id, format='l') -> dict:
-        return self.add_task_and_wait_for_result('get_ticket_history', (ticket_id,))
+    def get_ticket_history(self, ticket_id, format='long') -> dict:
+        return self.add_task_and_wait_for_result(
+            'get_ticket_history', (ticket_id,), {'format': format})
 
     def search(self, query, format='i'):
         return self.add_task_and_wait_for_result('search', (query,), {'format': format})
@@ -172,7 +173,7 @@ class Worker(Thread):
         try:
             self.wrapped.logout()
         except Exception as exc:
-            log.warn('Logout failed while disposing of worker: %s', exc)
+            log.warning('Logout failed while disposing of worker: %s', exc)
 
     def wait_for_task(self):
         return self.task_queue.get()
