@@ -1,8 +1,11 @@
 # Change Log for RT
 
-## 0.10.0 - unreleased
+## 0.10.0 - 2017-05-04
 
-In progress...
+- Added support for ordering ticket search results. This supports
+  ordering by a specified field and the ordering direction (ascending or
+  desecending). The defaults are to order by descending ticket ID so
+  newer tickets will be shown first.
 
 ## 0.9.0 - 2017-05-04
 
