@@ -1,5 +1,9 @@
 # Change Log for RT
 
+## 0.10.0 - unreleased
+
+In progress...
+
 ## 0.9.0 - 2017-05-04
 
 - Fixed handling of no matching results when searching for tickets;
