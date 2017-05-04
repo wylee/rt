@@ -156,13 +156,17 @@ class RTInterface:
                 raise RTTicketNotFoundError(ticket_id)
         return response.data
 
-    def search(self, query, format='id'):
+    def search(self, query, format='id', order_by='id', order_direction='-'):
         """Search for tickets.
 
         Args:
             query: An RT search query string.
             format: One of "id", "short", or "long" (or just the first
                 character of one of these).
+            order_by: RT field to order search results by
+            order_direction: Tell RT to order search results ascending
+                or descending (using + or -); the default is descending
+                so newer tickets will be shown first
 
         Returns:
             A list of search results. The format of the results depends
@@ -197,6 +201,7 @@ class RTInterface:
         params = {
             'query': query,
             'format': format,
+            'orderby': '{order_direction}{order_by}'.format_map(locals()),
         }
 
         # TODO: Use custom search data type to handle "No matching results."
