@@ -109,8 +109,14 @@ class RTFrontEnd:
         return self.add_task_and_wait_for_result(
             'get_ticket_history', (ticket_id,), {'format': format})
 
-    def search(self, query, format='i'):
-        return self.add_task_and_wait_for_result('search', (query,), {'format': format})
+    def search(self, query, format='i', order_by='id', order_direction='-'):
+        args = (query,)
+        kwargs = {
+            'format': format,
+            'order_by': order_by,
+            'order_direction': order_direction,
+        }
+        return self.add_task_and_wait_for_result('search', args, kwargs)
 
 
 class Worker(Thread):
