@@ -3,6 +3,7 @@ import re
 
 from .data import RTData, RTLinesData, RTIDSerializer
 from .exc import RTTicketCreationError, RTTicketNotFoundError, RTTicketUpdateError
+from .response import RTResponse
 from .session import RTSession
 
 
@@ -198,7 +199,16 @@ class RTInterface:
             'format': format,
         }
 
-        response = self.session.get(
-            path, params=params, data_type=data_type, multipart=multipart, serializer=serializer)
+        # TODO: Use custom search data type to handle "No matching results."
+        response = self.session.get(path, params=params, parse_response=False)
+
+        lines = [line.strip() for line in response.text.splitlines()]
+        lines = [line for line in lines if line]
+
+        if lines[1] == 'No matching results.':
+            return RTData()
+
+        response = RTResponse.from_raw_response(
+            response, data_type=data_type, serializer=serializer, multipart=multipart)
 
         return response.data
