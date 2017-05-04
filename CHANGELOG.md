@@ -1,5 +1,12 @@
 # Change Log for RT
 
+## 0.11.0 - 2017-05-04
+
+- Changed custom field name patterns so they're very permissive. I'm
+  not sure what all characters are valid and periodically run into
+  a name that doesn't fit the pattern. I don't see any good reason to
+  not accept any `CF.{...}` pattern.
+
 ## 0.10.0 - 2017-05-04
 
 - Added support for ordering ticket search results. This supports
