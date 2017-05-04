@@ -1,5 +1,9 @@
 # Change Log for RT
 
+## 0.11.0 - unreleased
+
+In progress...
+
 ## 0.10.0 - 2017-05-04
 
 - Added support for ordering ticket search results. This supports
