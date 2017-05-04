@@ -1,8 +1,12 @@
 # Change Log for RT
 
-## 0.9.0 - unreleased
+## 0.9.0 - 2017-05-04
 
-In progress...
+- Fixed handling of no matching results when searching for tickets;
+  previously, this was unhandled and would raise an exception when
+  reading the response lines.
+- Fixed `RTFrontEnd.get_ticket_history()` so it passes its `format`
+  arg to `RTInterface.get_ticket_history()`.
 
 ## 0.8.0 - 2017-03-29
 
