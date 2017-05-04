@@ -173,7 +173,7 @@ class Worker(Thread):
         try:
             self.wrapped.logout()
         except Exception as exc:
-            log.warn('Logout failed while disposing of worker: %s', exc)
+            log.warning('Logout failed while disposing of worker: %s', exc)
 
     def wait_for_task(self):
         return self.task_queue.get()
