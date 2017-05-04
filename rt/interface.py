@@ -191,7 +191,7 @@ class RTInterface:
             multipart = True
             serializer = None
         else:
-            raise ValueError('format must be one of "short" or "long"')
+            raise ValueError('format must be one of "id", "short", or "long"')
 
         params = {
             'query': query,
