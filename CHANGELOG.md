@@ -1,8 +1,9 @@
 # Change Log for RT
 
-## 0.12.0 - unreleased
+## 0.12.0 - 2071-05-05
 
-In progress...
+- Fixed bug where the last part of multipart responses was being
+  dropped.
 
 ## 0.11.0 - 2017-05-04
 
