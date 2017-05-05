@@ -1,5 +1,10 @@
 # Change Log for RT
 
+## 0.12.0 - 2071-05-05
+
+- Fixed bug where the last part of multipart responses was being
+  dropped.
+
 ## 0.11.0 - 2017-05-04
 
 - Changed custom field name patterns so they're very permissive. I'm

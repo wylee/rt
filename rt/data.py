@@ -194,6 +194,8 @@ class RTMultipartData(Sequence):
                 current_part = []
             else:
                 current_part.append(line)
+        if current_part:
+            parts.append(current_part)
         items = [RTData.from_lines(part) for part in parts]
         return cls(items)
 
